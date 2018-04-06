@@ -2,4 +2,3 @@ flask
 pylint
 requests
 pymongo
-pip
