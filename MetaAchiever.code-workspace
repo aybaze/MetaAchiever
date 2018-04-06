@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "api"
+		},
+		{
+			"path": "frontend"
+		}
+	],
+	"settings": {
+		"editor.formatOnSave": true
+	}
+}

@@ -9,9 +9,11 @@ app = Flask(__name__)
 
 app.debug = True
 
+
 @app.route("/get")
 def get_BA():
-    r = get("http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=440&key="+ key + "&steamid=76561197962272442")
+    r = get("http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=440&key=" +
+            key + "&steamid=76561197962272442")
     rjs = r.json()
     rjs["playerstats"]["gameName"] = "Kekswichsen 3.0"
     ach_all = rjs["playerstats"]["achievements"]
@@ -33,6 +35,5 @@ def test():
 def list_Games():
     return jsonify({1: "quake", 2: "DotA"})
 
+
 app.run()
-
-
