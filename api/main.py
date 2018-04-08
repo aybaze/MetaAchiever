@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
 from flask import Flask, jsonify
-from requests import get
-with open('steam.txt', 'r') as myfile:
-    key = myfile.read()
+from common.achievement import Achievement
+
 import unlocked
 import connect
+
+
+with open('steam.txt', 'r') as myfile:
+    key = myfile.read()
 
 app = Flask(__name__)
 
@@ -27,6 +30,9 @@ def display_unlocked_achievements():
     # list all unlocked achievements
     unlocked_achievements = unlocked.list_unlocked_achievements(
         list_of_achievements_per_game)
+
+    # just a test, does nothing yet
+    a = Achievement("Some achievement", "some description", 0)
 
     return jsonify(unlocked_achievements)
 

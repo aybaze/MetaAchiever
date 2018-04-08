@@ -1,5 +1,4 @@
 # connect to service and return list of achievements
-from flask import Flask, jsonify
 from requests import get
 
 
