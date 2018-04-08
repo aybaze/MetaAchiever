@@ -8,7 +8,8 @@ def count_unlocked_achievements(achievements):
     return unlocked
 
 def list_unlocked_achievements(achievements):
+    unlocked_achievements = []
     for x in achievements:
-        if x["achieved"] == 0:
-            achievements.pop(x)
-    return achievements.jsonify()
+        if x["achieved"] == 1:
+            unlocked_achievements.append(x)
+    return unlocked_achievements

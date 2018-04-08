@@ -22,8 +22,7 @@ def display_unlocked_achievements():
     #count_of_unlocked_achievements = unlocked.count_unlocked_achievements(list_of_achievements_per_game)
     #list all unlocked achievements
     unlocked_achievements = unlocked.list_unlocked_achievements(list_of_achievements_per_game)
-    return list_of_achievements_per_game
-    #return unlocked_achievements
+    return jsonify(unlocked_achievements)
 
 
 @app.route("/")
