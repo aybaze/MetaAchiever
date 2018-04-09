@@ -1,27 +1,41 @@
 #!/usr/bin/env python
 
 from flask import Flask, jsonify
+from pymodm import connect
+from pymongo.errors import ServerSelectionTimeoutError
+
 from common.achievement import Achievement
 
 import unlocked
-import connect
+import data
 
-
-with open('steam.txt', 'r') as myfile:
-    key = myfile.read()
-
+# create a new Flask object
 app = Flask(__name__)
 
-app.debug = True
+
+def init_game_data():
+    """Initializes game data
+
+    TODO: this will later fetch game data from various sources, for now we just have a few hard-coded achievements to play around with
+    """
+
+    a = Achievement("some-id", "Some human-readable name",
+                    "A short description", None, "Steam")
+    a.save()
 
 
-@app.route("/get")
-def display_unlocked_achievements():
+@app.route("/achievements")
+def get_achievements():
+    return jsonify([a.serialize() for a in Achievement.objects.all()])
+
+
+@app.route("/achievements/unlocked")
+def get_unlocked_achievements():
     # hardcode for testing
     steam_id = 76561197962272442
     game_id = 440
 
-    list_of_achievements_per_game = connect.get_achievements_steam_single(
+    list_of_achievements_per_game = data.get_achievements_steam_single(
         steam_id, key, game_id)
     # number of unlocked achievements
     count_of_unlocked_achievements = unlocked.count_unlocked_achievements(
@@ -30,9 +44,6 @@ def display_unlocked_achievements():
     # list all unlocked achievements
     unlocked_achievements = unlocked.list_unlocked_achievements(
         list_of_achievements_per_game)
-
-    # just a test, does nothing yet
-    a = Achievement("Some achievement", "some description", 0)
 
     return jsonify(unlocked_achievements)
 
@@ -43,8 +54,28 @@ def test():
 
 
 @app.route("/games")
-def list_Games():
+def get_games():
     return jsonify({1: "quake", 2: "DotA"})
 
 
-app.run()
+if __name__ == "__main__":
+    # retrieve the Steam API key from our 'config' file
+    with open('steam.txt', 'r') as myfile:
+        key = myfile.read()
+
+    # enable debugging for now
+    app.debug = True
+
+    try:
+        # establish MongoDB connection with (almost) no timeout, so we fail (almost) immediately
+        connect('mongodb://localhost:27017/MetaAchiever',
+                serverSelectionTimeoutMS=1000)
+
+        # some initialization of game data, achievements, ...
+        init_game_data()
+    except ServerSelectionTimeoutError:
+        # Continue for now, so @ipec can play around 'offline'
+        pass
+
+    # start the REST API
+    app.run()
