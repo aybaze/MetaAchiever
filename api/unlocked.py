@@ -1,4 +1,4 @@
-def count_unlocked_achievements(achievements):
+def count_unlocked_achievements(achievements: list) -> int:
     # Set counter for unlocker achievements 'unlocked' to 0
     unlocked = 0
 
@@ -10,7 +10,7 @@ def count_unlocked_achievements(achievements):
     return unlocked
 
 
-def list_unlocked_achievements(achievements):
+def list_unlocked_achievements(achievements: list) -> list:
     unlocked_achievements = []
 
     for x in achievements:
