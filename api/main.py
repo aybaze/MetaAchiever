@@ -77,7 +77,7 @@ if __name__ == "__main__":
     graph = Graph(username="neo4j", password="password")
 
     # some initialization of game data, achievements, ...
-    imports.import_Steam(graph, key)
+    imports.steam(graph, key)
     # except Exception:
     # Continue for now, so @ipec can play around 'offline'
     #    pass

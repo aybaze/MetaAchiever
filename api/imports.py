@@ -4,7 +4,7 @@ from requests import get
 from common.model import Achievement, Game, Player
 
 
-def import_Steam(graph: Graph, key: str):
+def steam(graph: Graph, key: str):
     # some hardcoded stuff for testing
     steam_ID = 76561197962272442
 
@@ -37,7 +37,8 @@ def import_Steam(graph: Graph, key: str):
         achievement.achieved_in = game
         # Put achievement into game
         game.achievements.add(achievement)
-    # Put player into game
+
+    # Put game into player
     player.games.add(game)
 
     # Push game to graph (save)
