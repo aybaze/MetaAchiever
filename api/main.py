@@ -38,7 +38,7 @@ def init_game_data():
 
 @app.route("/achievements")
 def get_achievements() -> str:
-    return jsonify(Achievement.select(graph, 'some-id').first().serialize())
+    return jsonify([a.serialize() for a in Achievement.select(graph)])
 
 
 @app.route("/achievements/unlocked")
