@@ -9,56 +9,15 @@ from common.model import Achievement, Game, Player
 
 import unlocked
 import data
+import imports
 
 # create a new Flask object
 app = Flask(__name__)
 
 
-def init_game_data():
-    """Initializes game data
-
-    TODO: this will later fetch game data from various sources, for now we just have a few hard-coded achievements to play around with
-    """
-
-    a = Achievement()
-    a.id = "some-id"
-    a.name = "Something"
-    a.description = "Some human-readable name"
-    a.image_url = "http://example.com"
-    a.source = "Steam"
-    graph.push(a)
-
-    b = Achievement()
-    b.id = "another-id"
-    b.name = "Something Else"
-    b.description = "Some other human-readable name"
-    b.source = "Steam"
-    graph.push(b)
-
-    g = Game()
-    g.id = "4"
-    g.name = "Some game"
-    g.achievements.add(a)
-    g.achievements.add(b)
-    graph.push(g)
-
-    p = Player()
-    p.name = "ipec"
-
-    # he owns a game
-    p.games.add(g)
-
-    # he has unlocked one achievement
-    p.unlocked_achievements.add(a, {
-        'unlockTime': datetime.now().ctime()
-    })
-
-    graph.push(p)
-
-
 @app.route("/achievements")
 def get_achievements() -> str:
-    return jsonify([achievement.serialize() for achievement in Achievement.select(graph)])
+    return jsonify([achievement.to_dict() for achievement in Achievement.select(graph)])
 
 
 @app.route("/achievements/unlocked")
@@ -118,7 +77,7 @@ if __name__ == "__main__":
     graph = Graph(username="neo4j", password="password")
 
     # some initialization of game data, achievements, ...
-    init_game_data()
+    imports.import_Steam(graph, key)
     # except Exception:
     # Continue for now, so @ipec can play around 'offline'
     #    pass
