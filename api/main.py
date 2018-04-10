@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from datetime import datetime
+
 from flask import Flask, jsonify, make_response
 from py2neo import Graph, Database
 
@@ -24,19 +26,32 @@ def init_game_data():
     a.description = "Some human-readable name"
     a.image_url = "http://example.com"
     a.source = "Steam"
-
     graph.push(a)
+
+    b = Achievement()
+    b.id = "another-id"
+    b.name = "Something Else"
+    b.description = "Some other human-readable name"
+    b.source = "Steam"
+    graph.push(b)
 
     g = Game()
     g.id = "4"
     g.name = "Some game"
     g.achievements.add(a)
-
+    g.achievements.add(b)
     graph.push(g)
 
     p = Player()
     p.name = "ipec"
+
+    # he owns a game
     p.games.add(g)
+
+    # he has unlocked one achievement
+    p.unlocked_achievements.add(a, {
+        'unlockTime': datetime.now().ctime()
+    })
 
     graph.push(p)
 

@@ -26,6 +26,7 @@ class Achievement(BaseObject):
     source = Property()
 
     achieved_in = RelatedFrom("Game", "achievedIn")
+    unlocked_by = RelatedFrom("Player", "unlockedBy")
 
 
 class Player(BaseObject):
@@ -35,3 +36,4 @@ class Player(BaseObject):
     name = Property()
 
     games = RelatedTo("Game", "owns")
+    unlocked_achievements = RelatedTo("Achievement", "hasUnlocked")
