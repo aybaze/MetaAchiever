@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 from flask import Flask, jsonify
-from pymodm import connect
-from pymongo.errors import ServerSelectionTimeoutError
+from py2neo import Graph, Database
 
-from common.achievement import Achievement
+from common.achievement import Achievement, Game
 
 import unlocked
 import data
@@ -19,14 +18,27 @@ def init_game_data():
     TODO: this will later fetch game data from various sources, for now we just have a few hard-coded achievements to play around with
     """
 
-    a = Achievement("some-id", "Some human-readable name",
-                    "A short description", None, "Steam")
-    a.save()
+    a = Achievement()
+    a.id = "some-id"
+    a.name = "Something"
+    a.description = "Some human-readable name"
+    a.image_url = "http://example.com"
+    a.source = "Steam"
+
+    graph.push(a)
+
+    g = Game()
+    g.name = "Some game"
+    g.achievements.add(a, {
+        "platform": "Steam"
+    })
+
+    graph.push(g)
 
 
 @app.route("/achievements")
 def get_achievements() -> str:
-    return jsonify([a.serialize() for a in Achievement.objects.all()])
+    return jsonify(Achievement.select(graph, 'some-id').first().serialize())
 
 
 @app.route("/achievements/unlocked")
@@ -66,16 +78,15 @@ if __name__ == "__main__":
     # enable debugging for now
     app.debug = True
 
-    try:
-        # establish MongoDB connection with (almost) no timeout, so we fail (almost) immediately
-        connect('mongodb://localhost:27017/MetaAchiever',
-                serverSelectionTimeoutMS=1000)
+    # try:
+    # establish MongoDB connection with (almost) no timeout, so we fail (almost) immediately
+    graph = Graph(username="neo4j", password="password")
 
-        # some initialization of game data, achievements, ...
-        init_game_data()
-    except ServerSelectionTimeoutError:
-        # Continue for now, so @ipec can play around 'offline'
-        pass
+    # some initialization of game data, achievements, ...
+    init_game_data()
+    # except Exception:
+    # Continue for now, so @ipec can play around 'offline'
+    #    pass
 
     # start the REST API
     app.run()
