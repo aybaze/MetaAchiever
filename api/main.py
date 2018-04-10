@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, make_response
 from py2neo import Graph, Database
 
-from common.achievement import Achievement, Game
+from common.model import Achievement, Game, Player
 
 import unlocked
 import data
@@ -28,17 +28,22 @@ def init_game_data():
     graph.push(a)
 
     g = Game()
+    g.id = "4"
     g.name = "Some game"
-    g.achievements.add(a, {
-        "platform": "Steam"
-    })
+    g.achievements.add(a)
 
     graph.push(g)
+
+    p = Player()
+    p.name = "ipec"
+    p.games.add(g)
+
+    graph.push(p)
 
 
 @app.route("/achievements")
 def get_achievements() -> str:
-    return jsonify([a.serialize() for a in Achievement.select(graph)])
+    return jsonify([achievement.serialize() for achievement in Achievement.select(graph)])
 
 
 @app.route("/achievements/unlocked")
@@ -67,7 +72,22 @@ def test() -> str:
 
 @app.route("/games")
 def get_games() -> str:
-    return jsonify({1: "quake", 2: "DotA"})
+    return jsonify([game.to_dict() for game in Game.select(graph)])
+
+
+@app.route("/games/<id>/achievements")
+def get_achievement_for_game(id) -> str:
+    game: Game = Game.select(graph, id).first()
+
+    if game is not None:
+        return jsonify([achievement.to_dict() for achievement in game.achievements])
+    else:
+        return make_response('Game not found', 404)
+
+
+@app.route("/players")
+def get_players() -> str:
+    return jsonify([player.to_dict() for player in Player.select(graph)])
 
 
 if __name__ == "__main__":
