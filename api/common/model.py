@@ -30,9 +30,9 @@ class Achievement(BaseObject):
 
 
 class Player(BaseObject):
-    # TODO: use a global unique identifier
-    __primarykey__ = "name"
+    __primarykey__ = "id"
 
+    id = Property()
     name = Property()
 
     games = RelatedTo("Game", "owns")
