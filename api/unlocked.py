@@ -2,7 +2,7 @@ def count_unlocked_achievements(achievements: list) -> int:
     # Set counter for unlocker achievements 'unlocked' to 0
     unlocked = 0
 
-    # count achievements stored in "achieved" within achievements array  
+    # count achievements stored in "achieved" within achievements array
     for x in achievements:
         if x["achieved"] == 1:
             unlocked = unlocked + 1
