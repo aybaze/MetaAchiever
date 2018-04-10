@@ -6,23 +6,31 @@ from common.model import Achievement, Game, Player
 
 def steam(graph: Graph, key: str):
     # some hardcoded stuff for testing
-    steam_ID = 76561197962272442
+    steam_id = 76561197962272442
+    app_id = 440
 
     # Import player data
     response = get("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" +
-                   str(key) + "&steamids=" + str(steam_ID))
+                   str(key) + "&steamids=" + str(steam_id))
     player_details = response.json()
     player = Player()
-    player.id = steam_ID
+    player.id = steam_id
     player.name = player_details["response"]["players"][0]["personaname"]
+
+    # Check if already exists
+    game = Game.select(graph, app_id).first()
+
+    if game is not None:
+        print("Game already exists in graph. Skipping import")
+        return
 
     # Import general game data (HARDCODED TO TF2)
     response = get(
-        "http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=" + key + "&appid=440")
+        "http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=" + key + "&appid=" + str(app_id))
     game_details = response.json()
 
     game = Game()
-    game.id = 440
+    game.id = app_id
     game.name = game_details["game"]["gameName"]
 
     # Import achievements
