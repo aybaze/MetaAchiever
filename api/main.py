@@ -25,12 +25,12 @@ def init_game_data():
 
 
 @app.route("/achievements")
-def get_achievements():
+def get_achievements() -> str:
     return jsonify([a.serialize() for a in Achievement.objects.all()])
 
 
 @app.route("/achievements/unlocked")
-def get_unlocked_achievements():
+def get_unlocked_achievements() -> str:
     # hardcode for testing
     steam_id = 76561197962272442
     game_id = 440
@@ -49,12 +49,12 @@ def get_unlocked_achievements():
 
 
 @app.route("/")
-def test():
+def test() -> str:
     return jsonify({1: "ein", 2: "schluessel", 3: "fuer", 4: "schloesser"})
 
 
 @app.route("/games")
-def get_games():
+def get_games() -> str:
     return jsonify({1: "quake", 2: "DotA"})
 
 
