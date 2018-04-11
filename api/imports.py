@@ -16,30 +16,52 @@ def steam(graph: Graph, key: str):
     player.id = steam_ID
     player.name = player_details["response"]["players"][0]["personaname"]
 
-    # Import general game data (HARDCODED TO TF2)
-    response = get(
-        "http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=" + key + "&appid=440")
+    # Import all games with playtime > 0
+    response = get("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=" +
+                   key + "&steamid=" + str(steam_ID) + "&format=json")
+    all_games = response.json()
+
+    # Put played games into list
+    played_games = []
+    for a in all_games["response"]["games"]:
+        if a["playtime_forever"] > 0:
+            played_games.append(a["appid"])
+
+    # Obtain all achievements for a game and store into player
+    for appid in played_games:
+        game = steam_schema_for_game(appid, key, graph)
+        if game != None:
+            player.games.add(game)
+
+    graph.push(player)
+
+
+def steam_schema_for_game(appid: int, key: str, graph: Graph) -> Game:
+    # Get game details for specific game
+    response = get("http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=" +
+                   str(key) + "&appid=" + str(appid))
     game_details = response.json()
 
+    # Skip game if no achievements or no gameName
+    if "availableGameStats" not in game_details["game"]:
+        return None
+    if "achievements" not in game_details["game"]["availableGameStats"]:
+        return None
+
+    # Create Graph object for game
     game = Game()
-    game.id = 440
+    game.id = appid
     game.name = game_details["game"]["gameName"]
 
-    # Import achievements
+    # Walk thru all achievements for game and save into game
     for a in game_details["game"]["availableGameStats"]["achievements"]:
-        # fill an achievement from JSON
         achievement = Achievement()
         achievement.id = a["name"]
         achievement.name = a["displayName"]
         achievement.source = "Steam"
-        achievement.description = a["description"]
-        achievement.image_url = a["icon"]
+        if "description" in a:
+            achievement.description = a["description"]
         achievement.achieved_in = game
-        # Put achievement into game
         game.achievements.add(achievement)
 
-    # Put game into player
-    player.games.add(game)
-
-    # Push game to graph (save)
-    graph.push(player)
+    return game
