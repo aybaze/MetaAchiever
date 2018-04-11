@@ -7,7 +7,6 @@ from common.model import Achievement, Game, Player
 def steam(graph: Graph, key: str):
     # some hardcoded stuff for testing
     steam_id = 76561197962272442
-    app_id = 440
 
     # Import player data
     response = get("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" +
@@ -17,43 +16,42 @@ def steam(graph: Graph, key: str):
     player.id = steam_id
     player.name = player_details["response"]["players"][0]["personaname"]
 
-<<<<<<< HEAD
     # Import all games with playtime > 0
     response = get("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=" +
-                   key + "&steamid=" + str(steam_ID) + "&format=json")
+                   key + "&steamid=" + str(steam_id) + "&format=json")
     all_games = response.json()
 
     # Put played games into list
-    played_games = []
-    for a in all_games["response"]["games"]:
-        if a["playtime_forever"] > 0:
-            played_games.append(a["appid"])
+    for game_detail in all_games["response"]["games"]:
+        # Obtain all achievements for a game and store into player if playtime is greater than 0
+        if game_detail["playtime_forever"] > 0:
+            app_id = game_detail["appid"]
 
-    # Obtain all achievements for a game and store into player
-    for appid in played_games:
-        game = steam_schema_for_game(appid, key, graph)
-        if game != None:
-            player.games.add(game)
+            # Check, if game already exists
+            game: Game = Game.select(graph, app_id).first()
+
+            if game is not None:
+                print("Game " + str(app_id) + " already found in graph")
+            else:
+                # Fetch from Steam
+                game = steam_schema_for_game(app_id, key, graph)
+
+            # Associate with player if we found valid game data
+            if game != None:
+                player.games.add(game)
+
+                # Push the game
+                graph.push(game)
 
     graph.push(player)
 
 
-def steam_schema_for_game(appid: int, key: str, graph: Graph) -> Game:
+def steam_schema_for_game(app_id: int, key: str, graph: Graph) -> Game:
+    print("Game " + str(app_id) + " not yet found in graph. Fetching from API...")
+
     # Get game details for specific game
     response = get("http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=" +
-                   str(key) + "&appid=" + str(appid))
-=======
-    # Check if already exists
-    game = Game.select(graph, app_id).first()
-
-    if game is not None:
-        print("Game already exists in graph. Skipping import")
-        return
-
-    # Import general game data (HARDCODED TO TF2)
-    response = get(
-        "http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=" + key + "&appid=" + str(app_id))
->>>>>>> 8fb4a521b62b40254debb2452e7625d022e692a6
+                   str(key) + "&appid=" + str(app_id))
     game_details = response.json()
 
     # Skip game if no achievements or no gameName
@@ -64,11 +62,7 @@ def steam_schema_for_game(appid: int, key: str, graph: Graph) -> Game:
 
     # Create Graph object for game
     game = Game()
-<<<<<<< HEAD
-    game.id = appid
-=======
     game.id = app_id
->>>>>>> 8fb4a521b62b40254debb2452e7625d022e692a6
     game.name = game_details["game"]["gameName"]
 
     # Walk thru all achievements for game and save into game

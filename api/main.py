@@ -10,6 +10,7 @@ from common.model import Achievement, Game, Player
 import unlocked
 import data
 import imports
+import os
 
 # create a new Flask object
 app = Flask(__name__)
@@ -65,22 +66,20 @@ def get_players() -> str:
 
 
 if __name__ == "__main__":
-    # retrieve the Steam API key from our 'config' file
-    with open('steam.txt', 'r') as myfile:
-        key = myfile.read()
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        # retrieve the Steam API key from our 'config' file
+        with open('steam.txt', 'r') as myfile:
+            key = myfile.read()
 
-    # enable debugging for now
-    app.debug = True
+        # try:
+        # establish MongoDB connection with (almost) no timeout, so we fail (almost) immediately
+        graph = Graph(username="neo4j", password="password")
 
-    # try:
-    # establish MongoDB connection with (almost) no timeout, so we fail (almost) immediately
-    graph = Graph(username="neo4j", password="password")
-
-    # some initialization of game data, achievements, ...
-    imports.steam(graph, key)
-    # except Exception:
-    # Continue for now, so @ipec can play around 'offline'
-    #    pass
+        # some initialization of game data, achievements, ...
+        imports.steam(graph, key)
+        # except Exception:
+        # Continue for now, so @ipec can play around 'offline'
+        #    pass
 
     # start the REST API
-    app.run()
+    app.run(debug=True)
