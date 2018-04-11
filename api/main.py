@@ -71,15 +71,13 @@ if __name__ == "__main__":
         with open('steam.txt', 'r') as myfile:
             key = myfile.read()
 
-        # try:
-        # establish MongoDB connection with (almost) no timeout, so we fail (almost) immediately
         graph = Graph(username="neo4j", password="password")
 
         # some initialization of game data, achievements, ...
-        imports.steam(graph, key)
-        # except Exception:
-        # Continue for now, so @ipec can play around 'offline'
-        #    pass
+        imports.steam(76561197966228499, graph, key)  # biftheki
+        imports.steam(76561197962272442, graph, key)  # oxisto
+        imports.steam(76561197960824521, graph, key)  # ipec
+        imports.steam(76561197960616970, graph, key)  # neo
 
     # start the REST API
     app.run(debug=True)

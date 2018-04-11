@@ -1,12 +1,11 @@
-from py2neo import Graph
+from py2neo import Graph, Relationship
 from requests import get
 
 from common.model import Achievement, Game, Player
 
 
-def steam(graph: Graph, key: str):
+def steam(steam_id: int, graph: Graph, key: str):
     # some hardcoded stuff for testing
-    steam_id = 76561197962272442
 
     # Import player data
     response = get("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" +
@@ -21,30 +20,41 @@ def steam(graph: Graph, key: str):
                    key + "&steamid=" + str(steam_id) + "&format=json")
     all_games = response.json()
 
-    app_ids = []
+    app_ids = {}
     # Put played games into list
     for game_detail in all_games["response"]["games"]:
         if game_detail["playtime_forever"] > 0:
-            # Convert app_id to string here to make our life easier
-            app_ids.append(game_detail["appid"])
+            app_ids[game_detail["appid"]] = True
 
-    for app_id in app_ids:
-        # Check, if game already exists
-        game: Game = Game.select(graph, app_id).first()
+    # Retrieve all games, that are already in the graph
+    nodes = graph.run(
+        "MATCH (g:Game) WHERE g.id IN {app_ids} RETURN g", {'app_ids': list(app_ids.keys())})
 
-        if game is None:
+    # Make sure, the player exists before we continue
+    graph.push(player)
+
+    # Loop through existing games
+    for node in nodes:
+        # Add it to the player
+        graph.create(Relationship(player.__ogm__.node, "owns", node["g"]))
+
+        # And remove it from the fetch list
+        app_ids[node["g"]["id"]] = False
+
+    for app_id, need_to_fetch in app_ids.items():
+        if need_to_fetch:
             print("Game " + str(app_id) +
                   " not yet found in graph. Fetching from API...")
 
             # Fetch from Steam
             game = fetch_game(app_id, key)
 
-        # Associate with player if we found valid game data
-        if game != None:
-            player.games.add(game)
+            # Associate with player if we found valid game data
+            if game != None:
+                player.games.add(game)
 
-            # Push the game
-            graph.push(game)
+                # Push the game
+                graph.push(game)
 
     graph.push(player)
 
