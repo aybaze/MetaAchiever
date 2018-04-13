@@ -3,14 +3,25 @@ from requests import get
 
 from common.model import Achievement, Game, Player
 
+import logging
+import sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+log: logging.Logger = logging.getLogger('import')
+
 
 def steam(steam_id: int, graph: Graph, key: str):
     # some hardcoded stuff for testing
+
+    log.info("Starting import for player %d", steam_id)
 
     # Import player data
     response = get("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" +
                    str(key) + "&steamids=" + str(steam_id))
     player_details = response.json()
+
     player = Player()
     player.id = steam_id
     player.name = player_details["response"]["players"][0]["personaname"]
@@ -26,6 +37,8 @@ def steam(steam_id: int, graph: Graph, key: str):
         if game_detail["playtime_forever"] > 0:
             app_ids[game_detail["appid"]] = True
 
+    log.info("Fetching existing games..")
+
     # Retrieve all games, that are already in the graph
     nodes = graph.run(
         "MATCH (g:Game) WHERE g.id IN {app_ids} RETURN g", {'app_ids': list(app_ids.keys())})
@@ -33,13 +46,19 @@ def steam(steam_id: int, graph: Graph, key: str):
     # Make sure, the player exists before we continue
     graph.push(player)
 
+    log.info("Building relationships to existing games...")
+
+    tx = graph.begin()
     # Loop through existing games
     for node in nodes:
         # Add it to the player
-        graph.create(Relationship(player.__ogm__.node, "owns", node["g"]))
+        tx.merge(Relationship(player.__ogm__.node, "owns", node["g"]))
 
         # And remove it from the fetch list
         app_ids[node["g"]["id"]] = False
+    tx.commit()
+
+    log.info("Fetching game info from non-existing games...")
 
     for app_id, need_to_fetch in app_ids.items():
         if need_to_fetch:
@@ -53,6 +72,8 @@ def steam(steam_id: int, graph: Graph, key: str):
 
             # Push the game
             graph.push(game)
+
+    log.info("Saving player...")
 
     graph.push(player)
 
