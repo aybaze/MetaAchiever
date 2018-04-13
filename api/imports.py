@@ -2,7 +2,7 @@ from requests import get
 
 from neomodel import NodeSet, db
 
-from common.model import Achievement, Game, Player
+from common.model import Achievement, Game, Player, to_dict
 
 import logging
 import sys
@@ -40,8 +40,8 @@ def steam(steam_id: int, key: str):
     app_ids = {}
     # Put played games into list
     for game_detail in all_games["response"]["games"]:
-        if game_detail["playtime_forever"] > 0:
-            app_ids[game_detail["appid"]] = True
+        # if game_detail["playtime_forever"] > 0:
+        app_ids[game_detail["appid"]] = True
 
     log.info("Fetching existing games..")
 
@@ -95,8 +95,8 @@ def import_game(app_id: str, key: str) -> Game:
     game.steam_app_id = app_id
 
     if str(app_id) not in store_info or "data" not in store_info[str(app_id)]:
-        print("Could not retrieve store information for " +
-              str(app_id) + ". Flagging game as incomplete.")
+        log.info(
+            "Could not retrieve store information for %d. Flagging game as incomplete.", app_id)
         # Create a dummy game for incomplete data
         game.name = str(app_id)
         game.incomplete = True
@@ -119,30 +119,37 @@ def import_game(app_id: str, key: str) -> Game:
 
             # If the name is valid, i.e. not a ValveTestAppName, we can take away the incomplete flag
             if game.name != ("ValveTestApp" + str(app_id)):
-                print("Found a valid name for " + str(app_id) +
-                      ". Recovered from incomplete state.")
+                log.info(
+                    "Found a valid name for %d. Recovered from incomplete state.", app_id)
                 game.incomplete = False
 
         # Save the game so its available
         game.save()
 
-        # Walk thru all achievements for game and save into game
-        for a in schema["game"]["availableGameStats"]["achievements"]:
-            achievement = Achievement()
-            # achievement "names" are not globally unique
-            # achievement.id = str(game.id) + "_" + a["name"]
-            achievement.api_name = a["name"]
-            achievement.name = a["displayName"]
-            achievement.source = "Steam"
+        try:
+            log.info("Need to insert %d achievements for %s", len(
+                schema["game"]["availableGameStats"]["achievements"]), game.name)
 
-            # Description is optional
-            if "description" in a:
-                achievement.description = a["description"]
+            # Walk thru all achievements for game and save into game
+            for a in schema["game"]["availableGameStats"]["achievements"]:
+                achievement = Achievement()
+                # achievement "names" are not globally unique
+                # achievement.id = str(game.id) + "_" + a["name"]
+                achievement.api_name = a["name"]
+                achievement.name = a["displayName"]
+                achievement.source = "Steam"
 
-            # save the achievement
-            achievement.save()
+                # Description is optional
+                if "description" in a:
+                    achievement.description = a["description"]
 
-            game.achievements.connect(achievement)
+                # save the achievement
+                achievement.save()
+
+                game.achievements.connect(achievement)
+        except Exception:
+            log.error("Could not parse achievement data for %s. Maybe the game does not contain any achievements.",
+                      game.name, exception)
 
     return game
 
