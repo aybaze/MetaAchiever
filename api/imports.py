@@ -43,19 +43,14 @@ def steam(steam_id: int, key: str):
         if game_detail["playtime_forever"] > 0:
             app_ids[game_detail["appid"]] = True
 
-    # lets just take TF2 for now
-    #app_ids = {440: True}
-
     log.info("Fetching existing games..")
 
     # Retrieve all games, that are already in the graph
     games: NodeSet = Game.nodes.filter(steam_app_id__in=list(app_ids.keys()))
 
-    # nodes = graph.run(
-    #        "MATCH (g:Game) WHERE g.id IN {app_ids} RETURN g", {'app_ids': list(app_ids.keys())})
-
     # Make sure, the player exists before we continue
     player.save()
+
     log.info("Building relationships to existing games...")
 
     # Loop through existing games
@@ -135,8 +130,9 @@ def import_game(app_id: str, key: str) -> Game:
         for a in schema["game"]["availableGameStats"]["achievements"]:
             achievement = Achievement()
             # achievement "names" are not globally unique
-            #achievement.id = str(game.id) + "_" + a["name"]
-            achievement.api_name = a["displayName"]
+            # achievement.id = str(game.id) + "_" + a["name"]
+            achievement.api_name = a["name"]
+            achievement.name = a["displayName"]
             achievement.source = "Steam"
 
             # Description is optional

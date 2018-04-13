@@ -10,7 +10,7 @@ class Game(StructuredNode):
     incomplete = BooleanProperty()
 
     achievements = RelationshipTo("Achievement", "hasAchievement")
-    owned_by = RelationshipFrom("Player", "ownedBy")
+    owned_by = RelationshipFrom("Player", "owns")
 
 
 class Achievement(StructuredNode):
@@ -21,8 +21,8 @@ class Achievement(StructuredNode):
     image_url = StringProperty(db_property="imageUrl")
     source = StringProperty()
 
-    achieved_in = RelationshipFrom("Game", "achievedIn")
-    unlocked_by = RelationshipFrom("Player", "unlockedBy")
+    achieved_in = RelationshipFrom("Game", "hasAchievement")
+    unlocked_by = RelationshipFrom("Player", "hasUnlocked")
 
 
 class Player(StructuredNode):
