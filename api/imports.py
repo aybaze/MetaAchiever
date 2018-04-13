@@ -47,36 +47,52 @@ def steam(steam_id: int, graph: Graph, key: str):
                   " not yet found in graph. Fetching from API...")
 
             # Fetch from Steam
-            game = fetch_game(app_id, key)
+            game = import_game(app_id, key)
 
-            # Associate with player if we found valid game data
-            if game != None:
-                player.games.add(game)
+            player.games.add(game)
 
-                # Push the game
-                graph.push(game)
+            # Push the game
+            graph.push(game)
 
     graph.push(player)
 
 
-def fetch_game(app_id: str, key: str) -> Game:
+def import_game(app_id: str, key: str) -> Game:
     store_info = fetch_store_info(app_id)
-
-    if str(app_id) not in store_info or "data" not in store_info[str(app_id)]:
-        print("Could not retrieve store information for " + str(app_id))
-        return None
 
     # Create Graph object for game
     game = Game()
     game.id = app_id
 
-    # Take name from store API
-    game.name = store_info[str(app_id)]["data"]["name"]
+    if str(app_id) not in store_info or "data" not in store_info[str(app_id)]:
+        print("Could not retrieve store information for " +
+              str(app_id) + ". Flagging game as incomplete.")
+        # Create a dummy game for incomplete data
+        game.name = str(app_id)
+        game.incomplete = True
+    else:
+        # Take name from store API
+        game.name = store_info[str(app_id)]["data"]["name"]
 
-    # Check, if the game has achievements, otherwise, we're done now
-    if "achievements" in store_info[str(app_id)]["data"] and store_info[str(app_id)]["data"]["achievements"]["total"] > 0:
-        # Get scehema for game
+    # Check, if the game incomplete or has achievements, otherwise, we're done now
+    if game.incomplete is True or ("achievements" in store_info[str(app_id)]["data"] and store_info[str(app_id)]["data"]["achievements"]["total"] > 0):
+        # Get schema for game
         schema = get_schema_for_game(app_id, key)
+        print(schema)
+
+        # If the schema also does not contain any name, we can only return now
+        if "gameName" not in schema["game"]:
+            return game
+
+        # If its an incomplete game, at least try to find a name from the schema (although it might be a wierd test name)
+        if game.incomplete is True:
+            game.name = schema["game"]["gameName"]
+
+            # If the name is valid, i.e. not a ValveTestAppName, we can take away the incomplete flag
+            if game.name != ("ValveTestApp" + str(app_id)):
+                print("Found a valid name for " + str(app_id) +
+                      "Recovered from incomplete state.")
+                game.incomplete = False
 
         # Walk thru all achievements for game and save into game
         for a in schema["game"]["availableGameStats"]["achievements"]:

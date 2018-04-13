@@ -2,3 +2,4 @@ flask
 pylint
 requests
 git+https://github.com/technige/py2neo.git#egg=py2neo
+pyyaml

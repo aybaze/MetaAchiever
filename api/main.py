@@ -7,6 +7,7 @@ from py2neo import Graph, Database
 
 from common.model import Achievement, Game, Player
 
+import yaml
 import unlocked
 import data
 import imports
@@ -67,17 +68,34 @@ def get_players() -> str:
 
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        # retrieve the Steam API key from our 'config' file
-        with open('steam.txt', 'r') as myfile:
-            key = myfile.read()
+        # our default configuration
+        default_cfg = {
+            "neo4j": {
+                "uri": "bolt://localhost:7687",
+                "username": "neo4j",
+                "password": "password"
+            },
+            "steam": {}
+        }
 
-        graph = Graph(username="neo4j", password="password")
+        # load config file
+        with open("config.yml", "r") as ymlfile:
+            # merge default configuration with the one in the yaml file
+            cfg = {**default_cfg, **yaml.load(ymlfile)}
+
+        if "key" not in cfg["steam"]:
+            print("Please provide a steam key.")
+            exit(-1)
+
+        graph = Graph(uri=cfg["neo4j"]["uri"], username=cfg["neo4j"]
+                      ["username"], password=cfg["neo4j"]["password"])
 
         # some initialization of game data, achievements, ...
-        imports.steam(76561197966228499, graph, key)  # biftheki
-        imports.steam(76561197962272442, graph, key)  # oxisto
-        imports.steam(76561197960824521, graph, key)  # ipec
-        imports.steam(76561197960616970, graph, key)  # neo
+        imports.steam(76561197966228499, graph,
+                      cfg["steam"]["key"])  # biftheki
+        imports.steam(76561197962272442, graph, cfg["steam"]["key"])  # oxisto
+        imports.steam(76561197960824521, graph, cfg["steam"]["key"])  # ipec
+        imports.steam(76561197960616970, graph, cfg["steam"]["key"])  # neo
 
     # start the REST API
     app.run(debug=True)

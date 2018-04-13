@@ -12,6 +12,9 @@ class Game(BaseObject):
     id = Property()
     name = Property()
 
+    # utility property, to determine games that are not in a good state, i.e. have test identiers for their name and such
+    incomplete = Property()
+
     achievements = RelatedTo("Achievement", "hasAchievement")
     owned_by = RelatedFrom("Player", "ownedBy")
 
