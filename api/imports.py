@@ -78,7 +78,6 @@ def import_game(app_id: str, key: str) -> Game:
     if game.incomplete is True or ("achievements" in store_info[str(app_id)]["data"] and store_info[str(app_id)]["data"]["achievements"]["total"] > 0):
         # Get schema for game
         schema = get_schema_for_game(app_id, key)
-        print(schema)
 
         # If the schema also does not contain any name, we can only return now
         if "gameName" not in schema["game"]:
@@ -91,13 +90,14 @@ def import_game(app_id: str, key: str) -> Game:
             # If the name is valid, i.e. not a ValveTestAppName, we can take away the incomplete flag
             if game.name != ("ValveTestApp" + str(app_id)):
                 print("Found a valid name for " + str(app_id) +
-                      "Recovered from incomplete state.")
+                      ". Recovered from incomplete state.")
                 game.incomplete = False
 
         # Walk thru all achievements for game and save into game
         for a in schema["game"]["availableGameStats"]["achievements"]:
             achievement = Achievement()
-            achievement.id = a["name"]
+            # achievement "names" are not globally unique
+            achievement.id = str(game.id) + "_" + a["name"]
             achievement.name = a["displayName"]
             achievement.source = "Steam"
 
