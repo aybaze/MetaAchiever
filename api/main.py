@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from datetime import datetime
+from multiprocessing import Process
 
 from flask import Flask, jsonify, make_response
 from py2neo import Graph, Database
@@ -51,7 +52,7 @@ def get_games() -> str:
     return jsonify([game.to_dict() for game in Game.select(graph)])
 
 
-@app.route("/games/<id>/achievements")
+@app.route("/games/<int:id>/achievements")
 def get_achievement_for_game(id) -> str:
     game: Game = Game.select(graph, id).first()
 
@@ -64,6 +65,21 @@ def get_achievement_for_game(id) -> str:
 @app.route("/players")
 def get_players() -> str:
     return jsonify([player.to_dict() for player in Player.select(graph)])
+
+
+def do_imports(cfg):
+    # we need a seperate graph object here, since we are in a different process
+    graph = Graph(uri=cfg["neo4j"]["uri"], username=cfg["neo4j"]
+                  ["username"], password=cfg["neo4j"]["password"])
+
+    # some initialization of game data, achievements, ...
+    imports.steam(76561197966228499, graph,
+                  cfg["steam"]["key"])  # biftheki
+    imports.steam(76561197962272442, graph, cfg["steam"]["key"])  # oxisto
+    imports.steam(76561197960824521, graph, cfg["steam"]["key"])  # ipec
+    imports.steam(76561197960616970, graph, cfg["steam"]["key"])  # neo
+
+    print("Done with imports")
 
 
 if __name__ == "__main__":
@@ -79,9 +95,10 @@ if __name__ == "__main__":
         }
 
         # load config file
-        with open("config.yml", "r") as ymlfile:
-            # merge default configuration with the one in the yaml file
-            cfg = {**default_cfg, **yaml.load(ymlfile)}
+        ymlfile = open("config.yml", "r")
+
+        # merge default configuration with the one in the yaml file
+        cfg = {**default_cfg, **yaml.load(ymlfile)}
 
         if "key" not in cfg["steam"]:
             print("Please provide a steam key.")
@@ -90,12 +107,10 @@ if __name__ == "__main__":
         graph = Graph(uri=cfg["neo4j"]["uri"], username=cfg["neo4j"]
                       ["username"], password=cfg["neo4j"]["password"])
 
-        # some initialization of game data, achievements, ...
-        imports.steam(76561197966228499, graph,
-                      cfg["steam"]["key"])  # biftheki
-        imports.steam(76561197962272442, graph, cfg["steam"]["key"])  # oxisto
-        imports.steam(76561197960824521, graph, cfg["steam"]["key"])  # ipec
-        imports.steam(76561197960616970, graph, cfg["steam"]["key"])  # neo
+        # launch a seperate thread/process for imports
+        print("Spawing imports process")
+        p = Process(target=do_imports, args=(cfg,))
+        p.start()
 
     # start the REST API
     app.run(debug=True)
