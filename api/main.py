@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
-from datetime import datetime
 from multiprocessing import Process
+import os
 
 from flask import Flask, jsonify, make_response
-from py2neo import Graph, Database
 
-from common.model import Achievement, Game, Player
+from neomodel import config as neoconfig
 
 import yaml
 import unlocked
 import data
 import imports
-import os
+
+from common.model import Achievement, Game, Player, to_dict
 
 # create a new Flask object
 app = Flask(__name__)
@@ -20,7 +20,7 @@ app = Flask(__name__)
 
 @app.route("/achievements")
 def get_achievements() -> str:
-    return jsonify([achievement.to_dict() for achievement in Achievement.select(graph)])
+    return jsonify([achievement.__dict__ for achievement in Achievement.nodes.all()])
 
 
 @app.route("/achievements/unlocked")
@@ -30,7 +30,7 @@ def get_unlocked_achievements() -> str:
     game_id = 440
 
     list_of_achievements_per_game = data.get_achievements_steam_single(
-        steam_id, key, game_id)
+        steam_id, cfg["steam"]["key"], game_id)
     # number of unlocked achievements
     count_of_unlocked_achievements = unlocked.count_unlocked_achievements(
         list_of_achievements_per_game)
@@ -49,35 +49,32 @@ def test() -> str:
 
 @app.route("/games")
 def get_games() -> str:
-    return jsonify([game.to_dict() for game in Game.select(graph)])
+    return jsonify([to_dict(game) for game in Game.nodes.all()])
 
 
-@app.route("/games/<int:id>/achievements")
-def get_achievement_for_game(id) -> str:
-    game: Game = Game.select(graph, id).first()
+@app.route("/games/<int:app_id>/achievements")
+def get_achievement_for_game(app_id) -> str:
+    game: Game = Game.nodes.get_or_none(steam_app_id=app_id)
 
     if game is not None:
-        return jsonify([achievement.to_dict() for achievement in game.achievements])
+        return jsonify([to_dict(achievement) for achievement in game.achievements.all()])
     else:
         return make_response('Game not found', 404)
 
 
 @app.route("/players")
 def get_players() -> str:
-    return jsonify([player.to_dict() for player in Player.select(graph)])
+    return jsonify([player.to_dict() for player in Player.nodes.all()])
 
 
 def do_imports(cfg):
-    # we need a seperate graph object here, since we are in a different process
-    graph = Graph(uri=cfg["neo4j"]["uri"], username=cfg["neo4j"]
-                  ["username"], password=cfg["neo4j"]["password"])
+    neoconfig.DATABASE_URL = cfg["neo4j"]["uri"]
 
     # some initialization of game data, achievements, ...
-    imports.steam(76561197966228499, graph,
-                  cfg["steam"]["key"])  # biftheki
-    imports.steam(76561197962272442, graph, cfg["steam"]["key"])  # oxisto
-    imports.steam(76561197960824521, graph, cfg["steam"]["key"])  # ipec
-    imports.steam(76561197960616970, graph, cfg["steam"]["key"])  # neo
+    imports.steam(76561197966228499, cfg["steam"]["key"])  # biftheki
+    imports.steam(76561197962272442, cfg["steam"]["key"])  # oxisto
+    imports.steam(76561197960824521, cfg["steam"]["key"])  # ipec
+    imports.steam(76561197960616970, cfg["steam"]["key"])  # neo
 
     print("Done with imports")
 
@@ -104,8 +101,7 @@ if __name__ == "__main__":
             print("Please provide a steam key.")
             exit(-1)
 
-        graph = Graph(uri=cfg["neo4j"]["uri"], username=cfg["neo4j"]
-                      ["username"], password=cfg["neo4j"]["password"])
+        neoconfig.DATABASE_URL = cfg["neo4j"]["uri"]
 
         # launch a seperate thread/process for imports
         print("Spawing imports process")
